@@ -21,8 +21,9 @@ export default function Messages() {
   const itemId = searchParams.get('itemId');
 
   useEffect(() => {
-   socket = io('https://borrow-on-rent-website.onrender.com', {
-  transports: ['websocket', 'polling']
+  socket = io('https://borrow-on-rent-website.onrender.com', {
+  transports: ['websocket', 'polling'],
+  withCredentials: true
 });
     socket.emit('join', user._id);
     socket.on('receiveMessage', (msg) => {
