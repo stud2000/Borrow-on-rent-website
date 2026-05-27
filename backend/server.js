@@ -21,8 +21,7 @@ const getAllowedOrigins = () => {
     mainUrl.replace(/\/$/, ''), // Remove trailing slash
     'https://borrow-on-rent-website-zdma.vercel.app',
     'https://borrow-on-rent-website-zdma-git-main-stud2000s-projects.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:3001'
+    'https://borrow-on-rent-website-zdma.vercel.app/'
   ];
 };
 
