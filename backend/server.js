@@ -67,6 +67,16 @@ app.use('/api/requests', require('./routes/requests'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/messages', require('./routes/messages'));
 
+
+
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API works' });
+});
+
+
+
+
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
