@@ -24,11 +24,26 @@ app.use(cors({
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'Backend is running! ✅', timestamp: new Date() });
+});
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/items', require('./routes/items'));
 app.use('/api/requests', require('./routes/requests'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/messages', require('./routes/messages'));
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'BorrowLocal API Server', version: '1.0.0' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
 
 const onlineUsers = new Map();
 io.on('connection', (socket) => {
@@ -45,11 +60,17 @@ io.on('connection', (socket) => {
 });
 app.set('io', io);
 
+const PORT = process.env.PORT || 5000;
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB connected');
-    server.listen(process.env.PORT || 5000, () =>
-      console.log(`🚀 Server on port ${process.env.PORT || 5000}`)
-    );
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📍 Health check: http://localhost:${PORT}/health`);
+    });
   })
-  .catch(err => console.error('MongoDB error:', err));
+  .catch(err => {
+    console.error('❌ MongoDB error:', err.message);
+    process.exit(1);
+  });
