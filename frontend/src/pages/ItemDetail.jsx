@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API from '../utils/api';
 import toast from 'react-hot-toast';
+const IMAGE_BASE_URL = 'https://borrow-on-rent-website.onrender.com/';
 
 export default function ItemDetail() {
   const { id } = useParams();
