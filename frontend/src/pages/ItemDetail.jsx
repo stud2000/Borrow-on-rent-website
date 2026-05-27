@@ -56,7 +56,8 @@ export default function ItemDetail() {
         <div>
           <div className="rounded-2xl overflow-hidden bg-gray-100 h-80">
             {item.images?.length > 0 ? (
-              <img src={item.images[imgIdx]} alt={item.title} className="w-full h-full object-cover" />
+              <img src={`${IMAGE_BASE_URL}${item.images[imgIdx]}`} alt={item.title}className="w-full h-full object-cover"/>
+      
             ) : (
               <div className="w-full h-full flex items-center justify-center text-7xl">📦</div>
             )}
@@ -66,7 +67,8 @@ export default function ItemDetail() {
               {item.images.map((img, i) => (
                 <button key={i} onClick={() => setImgIdx(i)}
                   className={`w-16 h-16 rounded-lg overflow-hidden border-2 ${i === imgIdx ? 'border-primary-500' : 'border-transparent'}`}>
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                 <img src={`${IMAGE_BASE_URL}${img}`}  alt=""  className="w-full h-full object-cover"/>
+                  
                 </button>
               ))}
             </div>
@@ -107,7 +109,8 @@ export default function ItemDetail() {
             <p className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Owner</p>
             <Link to={`/users/${item.owner._id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold">
-                {item.owner.avatar ? <img src={item.owner.avatar} alt="" className="w-11 h-11 rounded-full object-cover" /> : item.owner.name?.[0]?.toUpperCase()}
+                {item.owner.avatar ? <img src={`${IMAGE_BASE_URL}${item.owner.avatar}`} alt=""className="w-11 h-11 rounded-full object-cover"
+/> : item.owner.name?.[0]?.toUpperCase()}
               </div>
               <div>
                 <p className="font-semibold text-gray-900">{item.owner.name}</p>
