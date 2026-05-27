@@ -8,6 +8,11 @@ require('dotenv').config();
 const app = express();
 const server = http.createServer(app);
 
+console.log('🔧 Starting server...');
+console.log('📍 PORT:', process.env.PORT);
+console.log('📍 MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'NOT SET');
+console.log('📍 CLIENT_URL:', process.env.CLIENT_URL);
+
 const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -29,20 +34,26 @@ app.get('/health', (req, res) => {
   res.json({ status: 'Backend is running! ✅', timestamp: new Date() });
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'BorrowLocal API Server', version: '1.0.0', mongoConnected: mongoose.connection.readyState === 1 });
+});
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/items', require('./routes/items'));
 app.use('/api/requests', require('./routes/requests'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/messages', require('./routes/messages'));
 
-// Root endpoint
-app.get('/', (req, res) => {
-  res.json({ message: 'BorrowLocal API Server', version: '1.0.0' });
-});
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('❌ Error:', err.message);
+  res.status(500).json({ message: 'Internal server error', error: err.message });
 });
 
 const onlineUsers = new Map();
@@ -62,15 +73,21 @@ app.set('io', io);
 
 const PORT = process.env.PORT || 5000;
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
   .then(() => {
-    console.log('✅ MongoDB connected');
+    console.log('✅ MongoDB connected successfully');
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📍 Health check: http://localhost:${PORT}/health`);
+      console.log(`📍 API ready at: http://localhost:${PORT}/api`);
     });
   })
   .catch(err => {
-    console.error('❌ MongoDB error:', err.message);
+    console.error('❌ MongoDB connection failed:', err.message);
+    console.error('❌ Check your MONGO_URI in .env file');
+    console.error('❌ Make sure your IP is whitelisted in MongoDB Atlas Network Access');
     process.exit(1);
   });
