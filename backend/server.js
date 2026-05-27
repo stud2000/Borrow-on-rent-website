@@ -49,7 +49,14 @@ const corsOptions = {
 };
 
 const io = new Server(server, {
-  cors: corsOptions
+  cors: {
+    origin: [
+      'https://borrow-on-rent-website-zdma.vercel.app',
+      'https://borrow-on-rent-website-zdma-git-main-stud2000s-projects.vercel.app'
+    ],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
 });
 
 app.use(cors(corsOptions));
