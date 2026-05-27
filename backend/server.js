@@ -6,13 +6,12 @@ const { Server } = require('socket.io');
 require('dotenv').config();
 
 const app = express();
-const server = http.createServer(app);
-
 const fs = require('fs');
 
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads');
 }
+const server = http.createServer(app);
 
 console.log('🔧 Starting server...');
 console.log('📍 PORT:', process.env.PORT);
