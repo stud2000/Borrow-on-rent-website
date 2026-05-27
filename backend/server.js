@@ -7,10 +7,14 @@ require('dotenv').config();
 
 const app = express();
 const fs = require('fs');
+const path = require('path');
 
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
+const uploadsPath = path.join(__dirname, 'uploads');
+
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
 }
+
 const server = http.createServer(app);
 
 console.log('🔧 Starting server...');
@@ -61,7 +65,8 @@ const io = new Server(server, {
 
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+
+app.use('/uploads', express.static(uploadsPath));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -85,7 +90,10 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API works' });
 });
 
-
+app.get('/uploads-test', (req, res) => {
+  const files = fs.readdirSync(uploadsPath);
+  res.json(files);
+});
 
 
 
