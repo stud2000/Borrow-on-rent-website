@@ -15,7 +15,7 @@ console.log('📍 CLIENT_URL:', process.env.CLIENT_URL);
 
 // Allow multiple Vercel preview URLs
 const getAllowedOrigins = () => {
-  const mainUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const mainUrl = process.env.CLIENT_URL || 'https://borrow-on-rent-website-zdma.vercel.app/';
   return [
     mainUrl,
     mainUrl.replace(/\/$/, ''), // Remove trailing slash
