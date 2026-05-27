@@ -1,52 +1,84 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import Navbar from './components/layout/Navbar';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ItemDetail from './pages/ItemDetail';
-import PostItem from './pages/PostItem';
-import Dashboard from './pages/Dashboard';
-import Messages from './pages/Messages';
-import MapView from './pages/MapView';
-import Profile from './pages/Profile';
+import axios from 'axios';
 
-const PrivateRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="flex justify-center items-center h-screen"><div className="animate-spin text-4xl">⏳</div></div>;
-  return user ? children : <Navigate to="/login" />;
+// Use environment variable or fallback to direct URL for production
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://borrow-on-rent-website.onrender.com/api';
+
+console.log('🔧 API Base URL:', API_BASE_URL);
+
+const API = axios.create({ baseURL: API_BASE_URL });
+
+const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+const getStorage = () => localStorage.getItem('token') ? localStorage : sessionStorage;
+
+// Attach token to every request
+API.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  console.log('📍 Requesting:', config.baseURL + config.url);
+  return config;
+});
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(token);
+  });
+  failedQueue = [];
 };
 
-function AppRoutes() {
-  return (
-    <>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/items/:id" element={<ItemDetail />} />
-        <Route path="/map" element={<MapView />} />
-        <Route path="/users/:id" element={<Profile />} />
-        <Route path="/post-item" element={<PrivateRoute><PostItem /></PrivateRoute>} />
-        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
-        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </>
-  );
-}
+// Handle 401 globally — try to refresh token once, then logout
+API.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
 
-export default function App() {
-  return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Toaster position="top-right" toastOptions={{ duration: 3000, style: { borderRadius: '12px', fontSize: '14px' } }} />
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
-  );
-}
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't retry login/register/refresh routes
+      if (originalRequest.url?.includes('/auth/login') ||
+          originalRequest.url?.includes('/auth/register') ||
+          originalRequest.url?.includes('/auth/refresh')) {
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        // Queue requests while refreshing
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return API(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const res = await API.post('/auth/refresh');
+        const newToken = res.data.token;
+        getStorage().setItem('token', newToken);
+        getStorage().setItem('user', JSON.stringify(res.data.user));
+        API.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        processQueue(null, newToken);
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return API(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed — session truly expired, log out
+        processQueue(refreshError, null);
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default API;
