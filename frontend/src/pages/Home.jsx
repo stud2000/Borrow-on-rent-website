@@ -11,6 +11,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
+
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -19,23 +20,35 @@ export default function Home() {
     fetchItems();
   }, [category, page]);
 
-  const fetchItems = async (s = search) => {
-    setLoading(true);
-    try {
-      const params = { page, limit: 12 };
-      if (s) params.search = s;
-      if (category !== 'All') params.category = category;
-      const res = await API.get('/items', { params });
-      setItems(res.data.items);
-      setTotalPages(res.data.totalPages);
-      setTotal(res.data.total);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+ const fetchItems = async (s = search) => {
+  setLoading(true);
 
+  try {
+    const params = { page, limit: 12 };
+
+    if (s) params.search = s;
+    if (category !== 'All') params.category = category;
+
+    const res = await API.get('/items', { params });
+
+    console.log("API Response:", res.data);
+
+    setItems(res?.data?.items || []);
+    setTotalPages(res?.data?.totalPages || 1);
+    setTotal(res?.data?.total || 0);
+
+  } catch (err) {
+    console.error("Fetch Items Error:", err);
+
+    // Prevent crash even if API fails
+    setItems([]);
+    setTotalPages(1);
+    setTotal(0);
+
+  } finally {
+    setLoading(false);
+  }
+};
   const handleSearch = (e) => {
     e.preventDefault();
     setPage(1);
@@ -94,8 +107,8 @@ export default function Home() {
               </div>
             ))}
           </div>
-        ) : items.length === 0 ? (
-          <div className="text-center py-20">
+          ) : !items || items.length === 0 ? (
+            <div className="text-center py-20">
             <div className="text-5xl mb-4">🔍</div>
             <p className="text-gray-500 text-lg">No items found</p>
             <p className="text-gray-400 text-sm mt-1">Try a different search or be the first to lend!</p>
