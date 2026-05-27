@@ -12,8 +12,6 @@ const statusColor = {
   unavailable: 'bg-gray-100 text-gray-500'
 };
 
-const IMAGE_BASE_URL = 'https://borrow-on-rent-website.onrender.com/uploads/';
-
 export default function ItemCard({ item }) {
   const stars = Math.round(item.owner?.rating || 0);
 
@@ -21,7 +19,8 @@ export default function ItemCard({ item }) {
     <Link to={`/items/${item._id}`} className="card hover:shadow-card-hover transition-all duration-200 group overflow-hidden block">
       <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
         {item.images?.[0] ? (
-          <img src={`${IMAGE_BASE_URL}${item.images[0]}`} alt={item.title}className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
+         <img src={item.images[0]} alt={item.title}className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+/>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-5xl">
             {categoryEmoji[item.category] || '📦'}
@@ -43,7 +42,7 @@ export default function ItemCard({ item }) {
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold">
               {item.owner?.avatar
-                ? <img src={`${IMAGE_BASE_URL}${item.owner.avatar}`}alt=""className="w-7 h-7 rounded-full object-cover"/>
+                ?<img src={item.owner.avatar} alt="" className="w-7 h-7 rounded-full object-cover"/>
                 : item.owner?.name?.[0]?.toUpperCase()}
             </div>
             <div>
