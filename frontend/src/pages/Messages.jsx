@@ -21,7 +21,7 @@ export default function Messages() {
   const itemId = searchParams.get('itemId');
 
   useEffect(() => {
-    socket = io('http://localhost:5000');
+    socket = io('https://borrow-on-rent-website.onrender.com/');
     socket.emit('join', user._id);
     socket.on('receiveMessage', (msg) => {
       setMessages(prev => [...prev, msg]);
