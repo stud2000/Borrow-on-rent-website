@@ -13,19 +13,42 @@ console.log('📍 PORT:', process.env.PORT);
 console.log('📍 MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'NOT SET');
 console.log('📍 CLIENT_URL:', process.env.CLIENT_URL);
 
+// Allow multiple Vercel preview URLs
+const getAllowedOrigins = () => {
+  const mainUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  return [
+    mainUrl,
+    mainUrl.replace(/\/$/, ''), // Remove trailing slash
+    'https://borrow-on-rent-website-zdma.vercel.app',
+    'https://borrow-on-rent-website-zdma-git-main-stud2000s-projects.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ];
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = getAllowedOrigins();
+    console.log('📍 Request origin:', origin);
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn('❌ CORS blocked origin:', origin);
+      callback(new Error('CORS not allowed'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
+  cors: corsOptions
 });
 
-app.use(cors({ 
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true,
-  optionsSuccessStatus: 200
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -83,6 +106,7 @@ mongoose.connect(process.env.MONGO_URI, {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📍 Health check: http://localhost:${PORT}/health`);
       console.log(`📍 API ready at: http://localhost:${PORT}/api`);
+      console.log('✅ CORS enabled for Vercel frontend URLs');
     });
   })
   .catch(err => {
