@@ -3,6 +3,8 @@ import axios from 'axios';
 // Use environment variable or fallback to direct URL for production
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://borrow-on-rent-website.onrender.com/api';
 
+console.log('🔧 API Base URL:', API_BASE_URL);
+
 const API = axios.create({ baseURL: API_BASE_URL });
 
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -12,6 +14,7 @@ const getStorage = () => localStorage.getItem('token') ? localStorage : sessionS
 API.interceptors.request.use((config) => {
   const token = getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  console.log('📍 Requesting:', config.baseURL + config.url);
   return config;
 });
 
