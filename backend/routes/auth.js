@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const sendMail = require('../utils/mailer');
 
 const generateToken = (id, expiresIn = '30d') =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn });
@@ -10,19 +11,33 @@ const generateToken = (id, expiresIn = '30d') =>
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { name, phone, password, neighborhood } = req.body;
-    if (!name || !phone || !password)
-      return res.status(400).json({ message: 'Name, phone and password are required' });
+    const { name, email, phone, password, neighborhood } = req.body;
+    if (!name || !email || !password)
+      return res.status(400).json({ message: 'Name, email and password are required' });
 
-    const phoneRegex = /^[+]?[\d\s\-()]{7,15}$/;
-    if (!phoneRegex.test(phone))
-      return res.status(400).json({ message: 'Invalid phone number format' });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email))
+      return res.status(400).json({ message: 'Invalid email format' });
 
-    const exists = await User.findOne({ phone });
-    if (exists) return res.status(400).json({ message: 'Phone number already registered' });
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: 'Email already registered' });
 
-    const user = await User.create({ name, phone, password, neighborhood: neighborhood || '' });
+    const user = await User.create({ name, email, phone: phone || '', password, neighborhood: neighborhood || '' });
     const token = generateToken(user._id);
+
+    // Send welcome email asynchronously (don't block response)
+    (async () => {
+      try {
+        await sendMail({
+          to: user.email,
+          subject: 'Welcome to BorrowLocal — Account created',
+          text: `Hi ${user.name},\n\nYour BorrowLocal account has been created successfully.\n\nThanks,\nBorrowLocal Team`,
+          html: `<p>Hi ${user.name},</p><p>Your BorrowLocal account has been created successfully.</p><p>Thanks,<br/>BorrowLocal Team</p>`
+        });
+      } catch (e) {
+        console.error('Registration email failed:', e);
+      }
+    })();
 
     res.status(201).json({ token, user, expiresIn: '30d' });
   } catch (err) {
@@ -30,18 +45,18 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login
+// Login (strict email + password)
 router.post('/login', async (req, res) => {
   try {
-    const { phone, password } = req.body;
-    if (!phone || !password)
-      return res.status(400).json({ message: 'Phone and password are required' });
+    const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(400).json({ message: 'Email and password are required' });
 
-    const user = await User.findOne({ phone });
-    if (!user) return res.status(401).json({ message: 'Invalid phone or password' });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ message: 'Invalid email or password' });
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) return res.status(401).json({ message: 'Invalid phone or password' });
+    if (!isMatch) return res.status(401).json({ message: 'Invalid email or password' });
 
     const token = generateToken(user._id);
     res.json({ token, user, expiresIn: '30d' });
