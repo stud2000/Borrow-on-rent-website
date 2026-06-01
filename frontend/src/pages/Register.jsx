@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', phone: '', password: '', confirmPassword: '', neighborhood: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', neighborhood: '' });
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -15,8 +15,8 @@ export default function Register() {
     if (form.password.length < 6) return toast.error('Password must be at least 6 characters');
     setLoading(true);
     try {
-      await register({ name: form.name, phone: form.phone, password: form.password, neighborhood: form.neighborhood });
-      toast.success('Welcome to BorrowLocal! 🎉');
+      await register({ name: form.name, email: form.email, password: form.password, neighborhood: form.neighborhood });
+      toast.success('Welcome to BorrowLocal! 🎉 Please check your email for confirmation.');
       navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed');
@@ -40,27 +40,31 @@ export default function Register() {
             <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})}
               className="input-field" placeholder="Your name" required />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-            <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-              className="input-field" placeholder="+91 98765 43210" required />
-            <p className="text-xs text-gray-400 mt-1">Used for login and contact</p>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})}
+              className="input-field" placeholder="you@example.com" required autoComplete="email" />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Neighborhood (optional)</label>
             <input type="text" value={form.neighborhood} onChange={e => setForm({...form, neighborhood: e.target.value})}
               className="input-field" placeholder="e.g. Koramangala, HSR Layout" />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})}
-              className="input-field" placeholder="Min. 6 characters" required />
+              className="input-field" placeholder="Min. 6 characters" required autoComplete="new-password" />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
             <input type="password" value={form.confirmPassword} onChange={e => setForm({...form, confirmPassword: e.target.value})}
-              className="input-field" placeholder="Repeat password" required />
+              className="input-field" placeholder="Repeat password" required autoComplete="new-password" />
           </div>
+
           <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-base">
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
