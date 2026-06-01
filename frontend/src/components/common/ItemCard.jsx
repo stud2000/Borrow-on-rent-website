@@ -19,7 +19,7 @@ export default function ItemCard({ item }) {
     <Link to={`/items/${item._id}`} className="card hover:shadow-card-hover transition-all duration-200 group overflow-hidden block">
       <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
         {item.images?.[0] ? (
-         <img src={item.images[0]} alt={item.title}className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+         <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-5xl">
