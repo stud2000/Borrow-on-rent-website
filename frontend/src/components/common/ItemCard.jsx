@@ -1,6 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+// Resolve backend base URL for serving uploaded images
+const BACKEND_BASE = (process.env.REACT_APP_API_URL && process.env.REACT_APP_API_URL.replace(/\/api\/?$/, '')) || 'https://borrow-on-rent-website.onrender.com';
+
 const categoryEmoji = {
   Tools: '🔧', Books: '📚', Electronics: '💻', Sports: '⚽',
   'Lab Equipment': '🔬', Kitchen: '🍳', Garden: '🌱', Clothing: '👕', Other: '📦'
@@ -12,15 +15,23 @@ const statusColor = {
   unavailable: 'bg-gray-100 text-gray-500'
 };
 
+function resolveUrl(path) {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path; // already absolute
+  // ensure path starts with a slash
+  return `${BACKEND_BASE}${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
 export default function ItemCard({ item }) {
   const stars = Math.round(item.owner?.rating || 0);
+  const mainImage = item.images?.[0] ? resolveUrl(item.images[0]) : null;
+  const ownerAvatar = item.owner?.avatar ? resolveUrl(item.owner.avatar) : null;
 
   return (
     <Link to={`/items/${item._id}`} className="card hover:shadow-card-hover transition-all duration-200 group overflow-hidden block">
       <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-        {item.images?.[0] ? (
-         <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-/>
+        {mainImage ? (
+         <img src={mainImage} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-5xl">
             {categoryEmoji[item.category] || '📦'}
@@ -40,9 +51,9 @@ export default function ItemCard({ item }) {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold">
-              {item.owner?.avatar
-                ?<img src={item.owner.avatar} alt="" className="w-7 h-7 rounded-full object-cover"/>
+            <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold overflow-hidden">
+              {ownerAvatar
+                ? <img src={ownerAvatar} alt="" className="w-7 h-7 rounded-full object-cover" />
                 : item.owner?.name?.[0]?.toUpperCase()}
             </div>
             <div>
