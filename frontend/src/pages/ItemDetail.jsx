@@ -5,6 +5,13 @@ import API from '../utils/api';
 import toast from 'react-hot-toast';
 const IMAGE_BASE_URL = 'https://borrow-on-rent-website.onrender.com/';
 
+const resolveUrl = (url) => {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url) || url.startsWith('//')) return url;
+  const base = IMAGE_BASE_URL.replace(/\/$/, '');
+  return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 export default function ItemDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -17,7 +24,11 @@ export default function ItemDetail() {
   const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
-    API.get(`/items/${id}`).then(res => setItem(res.data)).catch(() => toast.error('Item not found')).finally(() => setLoading(false));
+    setLoading(true);
+    API.get(`/items/${id}`)
+      .then(res => setItem(res.data))
+      .catch(() => toast.error('Item not found'))
+      .finally(() => setLoading(false));
   }, [id]);
 
   const handleRequest = async (e) => {
@@ -37,13 +48,16 @@ export default function ItemDetail() {
 
   const handleMessage = () => {
     if (!user) { navigate('/login'); return; }
-    navigate(`/messages?userId=${item.owner._id}&itemId=${id}`);
+    const ownerId = item?.owner?._id;
+    if (!ownerId) return toast.error('Owner information not available');
+    navigate(`/messages?userId=${ownerId}&itemId=${id}`);
   };
 
   if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin text-4xl">⏳</div></div>;
   if (!item) return <div className="text-center py-20 text-gray-500">Item not found</div>;
 
-  const isOwner = user?._id === item.owner._id;
+  const ownerId = item.owner?._id || null;
+  const isOwner = user?._id === ownerId;
   const stars = Math.round(item.owner?.rating || 0);
 
   return (
@@ -57,8 +71,7 @@ export default function ItemDetail() {
         <div>
           <div className="rounded-2xl overflow-hidden bg-gray-100 h-80">
             {item.images?.length > 0 ? (
-              <img src={`${IMAGE_BASE_URL}${item.images[imgIdx]}`} alt={item.title}className="w-full h-full object-cover"/>
-      
+              <img src={resolveUrl(item.images[imgIdx])} alt={item.title} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-7xl">📦</div>
             )}
@@ -68,8 +81,7 @@ export default function ItemDetail() {
               {item.images.map((img, i) => (
                 <button key={i} onClick={() => setImgIdx(i)}
                   className={`w-16 h-16 rounded-lg overflow-hidden border-2 ${i === imgIdx ? 'border-primary-500' : 'border-transparent'}`}>
-                 <img src={`${IMAGE_BASE_URL}${img}`}  alt=""  className="w-full h-full object-cover"/>
-                  
+                  <img src={resolveUrl(img)} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -108,20 +120,23 @@ export default function ItemDetail() {
           {/* Owner */}
           <div className="card p-4 mb-5">
             <p className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Owner</p>
-            <Link to={`/users/${item.owner._id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <Link to={item.owner ? `/users/${item.owner._id}` : '#'} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold">
-                {item.owner.avatar ? <img src={`${IMAGE_BASE_URL}${item.owner.avatar}`} alt=""className="w-11 h-11 rounded-full object-cover"
-/> : item.owner.name?.[0]?.toUpperCase()}
+                {item.owner?.avatar ? (
+                  <img src={resolveUrl(item.owner.avatar)} alt="" className="w-11 h-11 rounded-full object-cover" />
+                ) : (
+                  item.owner?.name?.[0]?.toUpperCase()
+                )}
               </div>
               <div>
-                <p className="font-semibold text-gray-900">{item.owner.name}</p>
+                <p className="font-semibold text-gray-900">{item.owner?.name || 'Unknown'}</p>
                 <div className="flex items-center gap-1">
                   {[...Array(5)].map((_, i) => (
                     <span key={i} className={`text-sm ${i < stars ? 'text-yellow-400' : 'text-gray-200'}`}>★</span>
                   ))}
-                  <span className="text-xs text-gray-400 ml-1">({item.owner.ratingCount || 0} reviews)</span>
+                  <span className="text-xs text-gray-400 ml-1">({item.owner?.ratingCount || 0} reviews)</span>
                 </div>
-                <p className="text-xs text-gray-400">📍 {item.owner.neighborhood || 'Nearby'}</p>
+                <p className="text-xs text-gray-400">📍 {item.owner?.neighborhood || 'Nearby'}</p>
               </div>
             </Link>
           </div>
