@@ -25,21 +25,16 @@ router.post('/register', async (req, res) => {
     const user = await User.create({ name, email, phone: phone || '', password, neighborhood: neighborhood || '' });
     const token = generateToken(user._id);
 
-    // Send welcome email asynchronously (don't block response)
-    (async () => {
-      try {
-        console.log(`📧 Attempting to send email to ${user.email}...`);
-        const result = await sendMail({
-          to: user.email,
-          subject: 'Welcome to BorrowLocal — Account created',
-          text: `Hi ${user.name},\n\nYour BorrowLocal account has been created successfully.\n\nThanks,\nBorrowLocal Team`,
-          html: `<p>Hi ${user.name},</p><p>Your BorrowLocal account has been created successfully.</p><p>Thanks,<br/>BorrowLocal Team</p>`
-        });
-        console.log(`✅ Email sent successfully to ${user.email}`);
-      } catch (e) {
-        console.error(`❌ Email failed for ${user.email}:`, e.message);
-      }
-    })();
+    // Send welcome email (with better error handling - don't block response but log properly)
+    sendMail({
+      to: user.email,
+      subject: 'Welcome to BorrowLocal — Account created',
+      text: `Hi ${user.name},\n\nYour BorrowLocal account has been created successfully.\n\nThanks,\nBorrowLocal Team`,
+      html: `<p>Hi ${user.name},</p><p>Your BorrowLocal account has been created successfully.</p><p>Thanks,<br/>BorrowLocal Team</p>`
+    }).catch(err => {
+      // Log the full error but don't crash the registration
+      console.error(`❌ Failed to send welcome email to ${user.email}:`, err);
+    });
 
     res.status(201).json({ token, user, expiresIn: '30d' });
   } catch (err) {
