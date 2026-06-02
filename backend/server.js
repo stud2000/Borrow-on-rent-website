@@ -22,7 +22,7 @@ console.log('📍 PORT:', process.env.PORT);
 console.log('📍 MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'NOT SET');
 console.log('📍 CLIENT_URL:', process.env.CLIENT_URL);
 
-// Allow multiple Vercel preview URLs
+// Allow multiple Vercel preview URLs (kept for informational logging)
 const getAllowedOrigins = () => {
   const mainUrl = process.env.CLIENT_URL || 'https://borrow-on-rent-website-zdma.vercel.app/';
   return [
@@ -34,23 +34,28 @@ const getAllowedOrigins = () => {
   ];
 };
 
+// ---- CORS: temporary permissive configuration (reflect origin) ----
+// The frontend runs from many Vercel preview URLs. To avoid CORS blocking
+// during development and while previewing, reflect the request origin so
+// the browser receives the Access-Control-Allow-Origin header.
+// NOTE: This is permissive; lock this down to specific origins in production.
 const corsOptions = {
-  origin: (origin, callback) => {
-    const allowedOrigins = getAllowedOrigins();
-    console.log('📍 Request origin:', origin);
-    
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn('❌ CORS blocked origin:', origin);
-      callback(new Error('CORS not allowed'));
-    }
-  },
+  origin: true, // reflect request origin
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
+
+app.use((req, res, next) => {
+  // Log incoming origin for debugging (will be undefined for direct CURL requests)
+  console.log('📍 Request origin:', req.headers.origin);
+  next();
+});
+
+app.use(cors(corsOptions));
+// Ensure preflight requests are handled
+app.options('*', cors(corsOptions));
 
 const io = new Server(server, {
   cors: {
@@ -63,7 +68,6 @@ const io = new Server(server, {
   }
 });
 
-app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use('/uploads', express.static(uploadsPath));
@@ -84,8 +88,6 @@ app.use('/api/requests', require('./routes/requests'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/messages', require('./routes/messages'));
 
-
-
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API works' });
 });
@@ -95,8 +97,6 @@ app.get('/uploads-test', (req, res) => {
   res.json(files);
 });
 
-
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
@@ -105,6 +105,10 @@ app.use((req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
+  // If the error is a CORS origin error, return 403 with a friendly message
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({ message: 'CORS not allowed', error: err.message });
+  }
   res.status(500).json({ message: 'Internal server error', error: err.message });
 });
 
@@ -135,7 +139,7 @@ mongoose.connect(process.env.MONGO_URI, {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📍 Health check: http://localhost:${PORT}/health`);
       console.log(`📍 API ready at: http://localhost:${PORT}/api`);
-      console.log('✅ CORS enabled for Vercel frontend URLs');
+      console.log('✅ CORS enabled (temporarily permissive) for Vercel frontend URLs');
     });
   })
   .catch(err => {
