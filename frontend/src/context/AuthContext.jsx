@@ -40,8 +40,9 @@ export const AuthProvider = ({ children }) => {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (phone, password, rememberMe = true) => {
-    const res = await API.post('/auth/login', { phone, password });
+  // Updated: accept email and password and POST { email, password }
+  const login = async (email, password, rememberMe = true) => {
+    const res = await API.post('/auth/login', { email, password });
     const { token, user: userData } = res.data;
     // rememberMe = localStorage (persists), else sessionStorage (tab only)
     const storage = rememberMe ? localStorage : sessionStorage;
