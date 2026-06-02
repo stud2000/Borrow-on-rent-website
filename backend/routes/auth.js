@@ -28,14 +28,16 @@ router.post('/register', async (req, res) => {
     // Send welcome email asynchronously (don't block response)
     (async () => {
       try {
-        await sendMail({
+        console.log(`📧 Attempting to send email to ${user.email}...`);
+        const result = await sendMail({
           to: user.email,
           subject: 'Welcome to BorrowLocal — Account created',
           text: `Hi ${user.name},\n\nYour BorrowLocal account has been created successfully.\n\nThanks,\nBorrowLocal Team`,
           html: `<p>Hi ${user.name},</p><p>Your BorrowLocal account has been created successfully.</p><p>Thanks,<br/>BorrowLocal Team</p>`
         });
+        console.log(`✅ Email sent successfully to ${user.email}`);
       } catch (e) {
-        console.error('Registration email failed:', e);
+        console.error(`❌ Email failed for ${user.email}:`, e.message);
       }
     })();
 
