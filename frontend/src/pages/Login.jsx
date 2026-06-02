@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Login() {
-  const [form, setForm] = useState({ phone: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -15,11 +15,11 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(form.phone, form.password, rememberMe);
+      await login(form.email, form.password, rememberMe);
       toast.success('Welcome back! 👋');
       navigate('/');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed. Check your phone & password.');
+      toast.error(err.response?.data?.message || 'Login failed. Check your email & password.');
     } finally {
       setLoading(false);
     }
@@ -36,15 +36,15 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
-              type="tel"
-              value={form.phone}
-              onChange={e => setForm({ ...form, phone: e.target.value })}
+              type="email"
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="+91 98765 43210"
+              placeholder="you@example.com"
               required
-              autoComplete="tel"
+              autoComplete="email"
             />
           </div>
 
