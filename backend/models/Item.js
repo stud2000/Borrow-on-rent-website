@@ -20,7 +20,9 @@ const itemSchema = new mongoose.Schema({
   neighborhood: { type: String, default: '' },
   tags: [{ type: String }],
   views: { type: Number, default: 0 },
-  totalBorrows: { type: Number, default: 0 }
+  totalBorrows: { type: Number, default: 0 },
+itemRating: { type: Number, default: 0 },
+itemRatingCount: { type: Number, default: 0 }
 }, { timestamps: true });
 
 itemSchema.index({ location: '2dsphere' });
