@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', neighborhood: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '', neighborhood: '' });
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ export default function Register() {
     if (form.password.length < 6) return toast.error('Password must be at least 6 characters');
     setLoading(true);
     try {
-      await register({ name: form.name, email: form.email, password: form.password, neighborhood: form.neighborhood });
+      await register({ name: form.name, email: form.email, phone: form.phone, password: form.password, neighborhood: form.neighborhood });
       toast.success('Welcome to BorrowLocal! 🎉 Please check your email for confirmation.');
       navigate('/');
     } catch (err) {
@@ -45,6 +45,12 @@ export default function Register() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})}
               className="input-field" placeholder="you@example.com" required autoComplete="email" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number (optional)</label>
+            <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+              className="input-field" placeholder="e.g. +91 98765 43210" />
           </div>
 
           <div>
