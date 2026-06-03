@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Item = require('../models/Item');
 const { protect } = require('../middleware/auth');
 
@@ -14,15 +14,31 @@ cloudinary.config({
 });
 
 const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'borrow-app',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [{ width: 800, height: 600, crop: 'limit' }]
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: 'borrow-app',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [{ width: 800, height: 600, crop: 'limit' }],
+      public_id: `${Date.now()}-${file.originalname.split('.')[0]}`
+    };
   }
 });
 
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const fileFilter = (req, file, cb) => {
+  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only jpg, jpeg, png, webp images are allowed'), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter
+});
 
 // ─── GET ALL ITEMS (with search, filter, nearby) ──────────────────────────────
 router.get('/', async (req, res) => {
@@ -73,14 +89,22 @@ router.get('/:id', async (req, res) => {
 // ─── CREATE ITEM ──────────────────────────────────────────────────────────────
 router.post('/', protect, upload.array('images', 5), async (req, res) => {
   try {
-    const { title, description, category, condition, borrowDuration, neighborhood, tags, lat, lng } = req.body;
+    const {
+      title, description, category, condition,
+      borrowDuration, neighborhood, tags, lat, lng
+    } = req.body;
 
-    // Cloudinary returns full https:// URLs in f.path
+    // Cloudinary gives full https:// URL in f.path
     const images = req.files ? req.files.map(f => f.path) : [];
+
+    if (images.length === 0) {
+      return res.status(400).json({ message: 'At least one image is required' });
+    }
 
     const item = await Item.create({
       title, description, category, condition, borrowDuration,
-      neighborhood, tags: tags ? JSON.parse(tags) : [],
+      neighborhood,
+      tags: tags ? JSON.parse(tags) : [],
       images,
       owner: req.user._id,
       location: {
@@ -92,6 +116,7 @@ router.post('/', protect, upload.array('images', 5), async (req, res) => {
     const populated = await item.populate('owner', 'name avatar rating neighborhood');
     res.status(201).json(populated);
   } catch (err) {
+    console.error('❌ Create item error:', err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -112,7 +137,7 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// ─── DELETE ITEM (also deletes images from Cloudinary) ───────────────────────
+// ─── DELETE ITEM (also removes images from Cloudinary) ───────────────────────
 router.delete('/:id', protect, async (req, res) => {
   try {
     const item = await Item.findById(req.params.id);
@@ -120,21 +145,28 @@ router.delete('/:id', protect, async (req, res) => {
     if (item.owner.toString() !== req.user._id.toString())
       return res.status(403).json({ message: 'Not authorized' });
 
-    // Delete images from Cloudinary
+    // Delete each image from Cloudinary
     if (item.images && item.images.length > 0) {
       const deletePromises = item.images.map(imageUrl => {
-        // Extract public_id from URL e.g. "borrow-app/abc123"
-        const parts = imageUrl.split('/');
-        const filename = parts[parts.length - 1].split('.')[0];
-        const folder = parts[parts.length - 2];
-        const publicId = `${folder}/${filename}`;
-        return cloudinary.uploader.destroy(publicId);
+        try {
+          // Extract public_id from Cloudinary URL
+          // URL format: https://res.cloudinary.com/<cloud>/image/upload/v123/borrow-app/filename.jpg
+          const splitUrl = imageUrl.split('/');
+          const fileWithExt = splitUrl[splitUrl.length - 1];
+          const fileName = fileWithExt.split('.')[0];
+          const folder = splitUrl[splitUrl.length - 2];
+          const publicId = `${folder}/${fileName}`;
+          return cloudinary.uploader.destroy(publicId);
+        } catch (e) {
+          console.error('Failed to delete image from Cloudinary:', e.message);
+          return Promise.resolve(); // don't block delete if image removal fails
+        }
       });
-      await Promise.allSettled(deletePromises); // don't fail if image delete fails
+      await Promise.allSettled(deletePromises);
     }
 
     await item.deleteOne();
-    res.json({ message: 'Item deleted' });
+    res.json({ message: 'Item deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -148,6 +180,14 @@ router.get('/user/my', protect, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+// ─── Multer error handler ─────────────────────────────────────────────────────
+router.use((err, req, res, next) => {
+  if (err.message) {
+    return res.status(400).json({ message: err.message });
+  }
+  next(err);
 });
 
 module.exports = router;
