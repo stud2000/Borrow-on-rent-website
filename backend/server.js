@@ -26,7 +26,7 @@ const corsOptions = {
 };
 
 app.use((req, res, next) => {
-  console.log('📍 Request origin:', req.headers.origin);
+  if (process.env.NODE_ENV !== 'production') console.log('📍 Request origin:', req.headers.origin);
   next();
 });
 
