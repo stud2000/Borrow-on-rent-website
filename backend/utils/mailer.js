@@ -8,17 +8,16 @@ console.log('   SMTP_USER:', process.env.SMTP_USER);
 console.log('   EMAIL_FROM:', process.env.EMAIL_FROM);
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587', 10),
-  secure: process.env.SMTP_SECURE === 'true',
+  host: '172.217.214.108', // Gmail SMTP IPv4 — bypasses Render's IPv6 block
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  // ✅ Force IPv4 — Render free tier blocks IPv6
-  family: 4,
   tls: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    servername: 'smtp.gmail.com' // still verify against Gmail's cert
   }
 });
 
@@ -36,15 +35,13 @@ transporter.verify((error, success) => {
 async function sendMail({ to, subject, html, text }) {
   try {
     console.log(`📧 Attempting to send email to ${to}...`);
-    const mailOptions = {
+    const info = await transporter.sendMail({
       from: process.env.EMAIL_FROM || 'no-reply@borrowlocal.com',
       to,
       subject,
       text,
       html,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
+    });
     console.log(`✅ Email sent successfully to ${to}`);
     console.log(`   MessageID: ${info.messageId}`);
     return info;
@@ -52,7 +49,6 @@ async function sendMail({ to, subject, html, text }) {
     console.error(`❌ Email failed for ${to}:`);
     console.error(`   Error Code: ${error.code}`);
     console.error(`   Error Message: ${error.message}`);
-    console.error(`   Full Error:`, error);
     throw error;
   }
 }
