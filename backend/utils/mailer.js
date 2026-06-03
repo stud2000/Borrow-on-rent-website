@@ -1,6 +1,5 @@
 const nodemailer = require('nodemailer');
 
-// Log SMTP configuration on startup
 console.log('📧 Initializing mail transporter...');
 console.log('   SMTP_HOST:', process.env.SMTP_HOST);
 console.log('   SMTP_PORT:', process.env.SMTP_PORT);
@@ -11,11 +10,16 @@ console.log('   EMAIL_FROM:', process.env.EMAIL_FROM);
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || '587', 10),
-  secure: process.env.SMTP_SECURE === 'true', // true for 465
+  secure: process.env.SMTP_SECURE === 'true',
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  // ✅ Force IPv4 — Render free tier blocks IPv6
+  family: 4,
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 // Verify transporter connection
@@ -49,7 +53,7 @@ async function sendMail({ to, subject, html, text }) {
     console.error(`   Error Code: ${error.code}`);
     console.error(`   Error Message: ${error.message}`);
     console.error(`   Full Error:`, error);
-    throw error; // Re-throw so caller knows it failed
+    throw error;
   }
 }
 
