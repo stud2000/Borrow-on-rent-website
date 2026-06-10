@@ -3,7 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
-const sendMail = require('../utils/mailer');
+const { sendWelcomeEmail } = require('../utils/mailer');
 
 const generateToken = (id, expiresIn = '30d') =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn });
@@ -25,15 +25,9 @@ router.post('/register', async (req, res) => {
     const user = await User.create({ name, email, phone: phone || '', password, neighborhood: neighborhood || '' });
     const token = generateToken(user._id);
 
-    // Send welcome email (with better error handling - don't block response but log properly)
-    sendMail({
-      to: user.email,
-      subject: 'Welcome to BorrowLocal — Account created',
-      text: `Hi ${user.name},\n\nYour BorrowLocal account has been created successfully.\n\nThanks,\nBorrowLocal Team`,
-      html: `<p>Hi ${user.name},</p><p>Your BorrowLocal account has been created successfully.</p><p>Thanks,<br/>BorrowLocal Team</p>`
-    }).catch(err => {
-      // Log the full error but don't crash the registration
-      console.error(`❌ Failed to send welcome email to ${user.email}:`, err);
+    // Send welcome email — uses the proper HTML template from mailer.js
+    sendWelcomeEmail({ name: user.name, email: user.email }).catch(err => {
+      console.error(`❌ Failed to send welcome email to ${user.email}:`, err.message);
     });
 
     res.status(201).json({ token, user, expiresIn: '30d' });
@@ -65,7 +59,6 @@ router.post('/login', async (req, res) => {
 // Get current user (also acts as session validator)
 router.get('/me', protect, async (req, res) => {
   try {
-    // Return fresh user data from DB
     const user = await User.findById(req.user._id).select('-password');
     if (!user) return res.status(401).json({ message: 'User not found' });
     res.json(user);
@@ -74,7 +67,7 @@ router.get('/me', protect, async (req, res) => {
   }
 });
 
-// Refresh token — call this before token expires to keep session alive
+// Refresh token
 router.post('/refresh', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
@@ -86,7 +79,7 @@ router.post('/refresh', protect, async (req, res) => {
   }
 });
 
-// Logout (client-side only, but good to have for future blocklist support)
+// Logout
 router.post('/logout', protect, (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
